@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>World Weather Checker</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            color: white;
+            background: linear-gradient(135deg, #2196f3, #00bcd4);
+            transition: 0.5s;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1000px;
+            margin: auto;
+            padding: 40px 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .search {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 70%;
+            max-width: 500px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        button {
+            padding: 15px 25px;
+            margin-left: 5px;
+            border: none;
+            border-radius: 10px;
+            background: #ff9800;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #f57c00;
+        }
+
+        .main-card {
+            background: rgba(0,0,0,0.35);
+            padding: 30px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+
+        .city {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .main-icon {
+            font-size: 80px;
+            margin: 10px;
+        }
+
+        .temperature {
+            font-size: 55px;
+            font-weight: bold;
+        }
+
+        .condition {
+            font-size: 20px;
+            text-transform: capitalize;
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .detail {
+            background: rgba(255,255,255,0.15);
+            padding: 18px;
+            border-radius: 15px;
+        }
+
+        .detail b {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .forecast-title {
+            text-align: center;
+            margin-top: 35px;
+        }
+
+        .forecast {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+
+        .day {
+            background: rgba(0,0,0,0.35);
+            padding: 20px 10px;
+            border-radius: 18px;
+            text-align: center;
+        }
+
+        .day-icon {
+            font-size: 40px;
+            margin: 10px;
+        }
+
+        .error {
+            text-align: center;
+            color: #ffd0d0;
+            font-size: 18px;
+        }
+
+        .loading {
+            text-align: center;
+            font-size: 20px;
+        }
+
+        @media (max-width: 700px) {
+
+            .details {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .forecast {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            button {
+                width: 100%;
+                margin: 0;
+            }
+
+            .temperature {
+                font-size: 45px;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <h1>🌎 World Weather</h1>
+
+    <div class="search">
+
+        <input
+            type="text"
+            id="city"
+            placeholder="Enter city name..."
+            onkeydown="if(event.key === 'Enter') checkWeather()"
+        >
+
+        <button onclick="checkWeather()">
+            🔍 Search
+        </button>
+
+    </div>
+
+
+    <div id="weather">
+
+        <p class="loading">
+            Enter a city to check the weather 🌤️
+        </p>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const apiKey = "c0f9eb252d4cfd08907181330c9aaafa";
+
+
+async function checkWeather() {
+
+    let city = document.getElementById("city").value.trim();
+
+    if (city === "") {
+
+        document.getElementById("weather").innerHTML =
+            "<p class='error'>Please enter a city name.</p>";
+
+        return;
+    }
+
+
+    document.getElementById("weather").innerHTML =
+        "<p class='loading'>🔄 Loading weather...</p>";
+
+
+    try {
+
+        // Current weather
+        let currentURL =
+            "https://api.openweathermap.org/data/2.5/weather" +
+            "?q=" + encodeURIComponent(city) +
+            "&appid=" + apiKey +
+            "&units=metric";
+
+
+        let response = await fetch(currentURL);
+
+        let data = await response.json();
+
+
+        if (data.cod != 200) {
+
+            document.getElementById("weather").innerHTML =
+                "<p class='error'>❌ City not found.<br>" +
+                "Try another city.</p>";
+
+            return;
+        }
+
+
+        // Weather information
+
+        let temp = Math.round(data.main.temp);
+
+        let feels = Math.round(data.main.feels_like);
+
+        let humidity = data.main.humidity;
+
+        let pressure = data.main.pressure;
+
+        let wind = data.wind.speed;
+
+        let visibility = data.visibility
+            ? (data.visibility / 1000).toFixed(1)
+            : "N/A";
+
+        let clouds = data.clouds.all;
+
+        let condition = data.weather[0].description;
+
+        let icon = getWeatherIcon(
+            data.weather[0].main
+        );
+
+
+        // Wind direction
+
+        let windDirection =
+            getWindDirection(data.wind.deg);
+
+
+        // Sunrise
+
+        let sunrise =
+            new Date(data.sys.sunrise * 1000)
+            .toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+
+        // Sunset
+
+        let sunset =
+            new Date(data.sys.sunset * 1000)
+            .toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+
+        // Forecast
+
+        let forecastURL =
+            "https://api.openweathermap.org/data/2.5/forecast" +
+            "?lat=" + data.coord.lat +
+            "&lon=" + data.coord.lon +
+            "&appid=" + apiKey +
+            "&units=metric";
+
+
+        let forecastResponse =
+            await fetch(forecastURL);
+
+
+        let forecastData =
+            await forecastResponse.json();
+
+
+        let forecastHTML = "";
+
+        let days = {};
+
+        forecastData.list.forEach(item => {
+
+            let date = new Date(item.dt * 1000);
+
+            let day = date.toLocaleDateString(
+                "en-US",
+                { weekday: "short" }
+            );
+
+
+            if (!days[day]) {
+
+                days[day] = {
+                    temp: item.main.temp,
+                    condition: item.weather[0].main,
+                    rain: Math.round(item.pop * 100)
+                };
+
+            }
+
+        });
+
+
+        let dayNames = Object.keys(days).slice(0, 5);
+
+
+        dayNames.forEach(day => {
+
+            let forecast = days[day];
+
+            forecastHTML += `
+
+                <div class="day">
+
+                    <h3>${day}</h3>
+
+                    <div class="day-icon">
+                        ${getWeatherIcon(forecast.condition)}
+                    </div>
+
+                    <b>
+                        ${Math.round(forecast.temp)}°C
+                    </b>
+
+                    <p>
+                        ${forecast.condition}
+                    </p>
+
+                    <p>
+                        🌧️ ${forecast.rain}% rain
+                    </p>
+
+                </div>
+
+            `;
+
+        });
+
+
+        // Rainfall
+
+        let rainfall = 0;
+
+        if (data.rain && data.rain["1h"]) {
+
+            rainfall = data.rain["1h"];
+
+        }
+
+
+        // Display
+
+        document.getElementById("weather").innerHTML = `
+
+            <div class="main-card">
+
+                <div class="city">
+                    📍 ${data.name}, ${data.sys.country}
+                </div>
+
+                <div class="main-icon">
+                    ${icon}
+                </div>
+
+                <div class="temperature">
+                    ${temp}°C
+                </div>
+
+                <div class="condition">
+                    ${condition}
+                </div>
+
+                <p>
+                    Feels like ${feels}°C
+                </p>
+
+
+                <div class="details">
+
+                    <div class="detail">
+                        <b>💧 Humidity</b>
+                        ${humidity}%
+                    </div>
+
+                    <div class="detail">
+                        <b>💨 Wind</b>
+                        ${wind} m/s
+                    </div>
+
+                    <div class="detail">
+                        <b>🧭 Direction</b>
+                        ${windDirection}
+                    </div>
+
+                    <div class="detail">
+                        <b>🌧️ Rainfall</b>
+                        ${rainfall} mm
+                    </div>
+
+                    <div class="detail">
+                        <b>☁️ Clouds</b>
+                        ${clouds}%
+                    </div>
+
+                    <div class="detail">
+                        <b>👁️ Visibility</b>
+                        ${visibility} km
+                    </div>
+
+                    <div class="detail">
+                        <b>⏲️ Pressure</b>
+                        ${pressure} hPa
+                    </div>
+
+                    <div class="detail">
+                        <b>🌅 Sunrise</b>
+                        ${sunrise}
+                    </div>
+
+                    <div class="detail">
+                        <b>🌇 Sunset</b>
+                        ${sunset}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <h2 class="forecast-title">
+                📅 5-Day Forecast
+            </h2>
+
+            <div class="forecast">
+
+                ${forecastHTML}
+
+            </div>
+
+        `;
+
+
+        // Change background
+
+        changeBackground(
+            data.weather[0].main
+        );
+
+    }
+
+
+    catch(error) {
+
+        document.getElementById("weather").innerHTML =
+            "<p class='error'>" +
+            "❌ Unable to connect to weather service." +
+            "</p>";
+
+    }
+
+}
+
+
+
+// Weather icons
+
+function getWeatherIcon(condition) {
+
+    condition = condition.toLowerCase();
+
+    if (condition.includes("thunderstorm"))
+        return "⛈️";
+
+    if (condition.includes("rain"))
+        return "🌧️";
+
+    if (condition.includes("drizzle"))
+        return "🌦️";
+
+    if (condition.includes("snow"))
+        return "❄️";
+
+    if (condition.includes("cloud"))
+        return "☁️";
+
+    if (condition.includes("mist") ||
+        condition.includes("fog"))
+        return "🌫️";
+
+    if (condition.includes("clear"))
+        return "☀️";
+
+    return "🌤️";
+}
+
+
+
+// Wind direction
+
+function getWindDirection(degrees) {
+
+    let directions = [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+    ];
+
+    let index =
+        Math.round(degrees / 45) % 8;
+
+    return directions[index];
+
+}
+
+
+
+// Background
+
+function changeBackground(condition) {
+
+    condition =
+        condition.toLowerCase();
+
+
+    if (condition.includes("rain")) {
+
+        document.body.style.background =
+            "linear-gradient(135deg,#37474f,#607d8b)";
+
+    }
+
+    else if (condition.includes("cloud")) {
+
+        document.body.style.background =
+            "linear-gradient(135deg,#607d8b,#90a4ae)";
+
+    }
+
+    else if (condition.includes("clear")) {
+
+        document.body.style.background =
+            "linear-gradient(135deg,#2196f3,#00bcd4)";
+
+    }
+
+    else if (condition.includes("snow")) {
+
+        document.body.style.background =
+            "linear-gradient(135deg,#90caf9,#e3f2fd)";
+
+    }
+
+    else {
+
+        document.body.style.background =
+            "linear-gradient(135deg,#2196f3,#00bcd4)";
+
+    }
+
+}
+
+</script>
+
+</body>
+</html>
